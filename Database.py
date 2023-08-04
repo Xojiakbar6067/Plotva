@@ -38,39 +38,46 @@ def add_product(pr_name, pr_amount, pr_prise, pr_des, pr_photo):
 def show_info(pr_id):
     sql.execute('SELECT pr_name, pr_amount, pr_price, pr_des, pr_photo FROM products WHERE id=?;',(pr_id,)).fetchone()
 
-#вывод всез продуктов шз базы
+#вывод всех продуктов из базы
 def show_all_products():
     all_products=sql.execute('SELECT * FROM products')
     return all_products.fetchall()
 
 #вывод id продуктов
 def get_pr_name_id():
-    products=sql.execute('SELECT id, pr_name, pr_amount FROM products;')
+    products=sql.execute('SELECT id, pr_name, pr_amount, pr_price FROM products;')
     return products.fetchall()
 
 def get_pr_id():
     prods=sql.execute('SELECT pr_name, id, pr_amount FROM products;').fetchall()
-    sorted_prods= [i[0] for i in prods if i[2]>0]
+    sorted_prods = [i[1] for i in prods if i[2]>0]
     return sorted_prods
+
+def get_pr_name(id):
+    product=sql.execute('SELECT pr_name FROM products WHERE id=?', (id,))
+    return product.fetchone()
 
        ##методы для корзини##
 #добавления товаров в карзину
-def add_to_cart(user_id, user_product, product_quantity, total):
-    sql.execute('INSERT INTO cart(user_id, user_product, product_quantity, total) VALUES (?, ?, ?, ?);',(user_id, user_product, product_quantity, total))
-    amount=sql.execute('SELECT pr_amount FROM products WHERE pr_name=?;', (user_product,)).fetchone()
-    sql.execute(f'UPDATE products SET pr_amount={amount[0]-product_quantity} WHERE pr_name=?;', (user_product,))
+def add_to_cart(user_id, pr_name, pr_quantity, user_total=0):
+    sql.execute('INSERT INTO cart(user_id, user_product, product_quantity, total) VALUES (?, ?, ?, ?);',(user_id, pr_name, pr_quantity, user_total))
+    amount=sql.execute('SELECT pr_amount FROM products WHERE pr_name=?;', (pr_name,)).fetchone()
+    sql.execute(f'UPDATE products SET pr_amount={amount[0]-pr_quantity} WHERE pr_name=?;', (pr_name,))
     #фиксируем изменения
     connection.commit()
 #очистка корзини
 def clear_cart(user_id):
     pr_name=sql.execute('SELECT user_product FROM cart WHERE user_id=?;', (user_id,)).fetchone()
-    amount=sql.execute('SELECT pr_amount FROM products WHERE pr_name=?;', (pr_name,)).fetchone()
-    pr_quantity=sql.execute('SELECT product_quantity FROM cart WHERE user_id=?;', (user_id,)).fetchone()
-    sql.execute(f'UPDATE products SET pr_amount={amount[0]+pr_quantity} WHERE pr_name=?;', (pr_name,))
+    amount=sql.execute('SELECT pr_amount FROM products WHERE pr_name=?;', (pr_name[0],)).fetchone()[0]
+    pr_quantity=sql.execute('SELECT product_quantity FROM cart WHERE user_id=?;', (user_id,)).fetchone()[0]
+    sql.execute(f'UPDATE products SET pr_amount={amount+pr_quantity} WHERE pr_name=?;', (pr_name,))
     sql.execute('DELETE FROM cart WHERE user_id=?;', (user_id))
     connection.commit()
 
 #отоброжения карзини
 def show_cart(user_id):
-    cart=sql.execute('SELECT user_product, product_quantity, total FROM cart WHERE user_id=?;', (user_id))
+    cart=sql.execute('SELECT user_product, product_quantity, total FROM cart WHERE user_id=?;', (user_id,))
     return cart.fetchone()
+#sql.execute('INSERT INTO products (pr_name, pr_amount, pr_price, pr_des, pr_photo) VALUES ("лаваш", 500, 27990, "вкусно и сочно", "https://i.postimg.cc/43T8BdGR/da9581ee81134ea59740836aaf9e4a57-e1580887902436.jpg")')
+
+# print(sql.execute('SELECT * FROM products').fetchall())
